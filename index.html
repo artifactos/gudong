@@ -51,10 +51,6 @@
   header{display:flex;align-items:center;gap:10px;padding:12px 0 10px;position:sticky;top:0;z-index:8;
     background:linear-gradient(180deg,var(--bg) 74%,rgba(247,244,236,0));}
   .brand{font-family:var(--serif);font-size:17px;letter-spacing:6px;font-weight:700}
-  /* 图形标:竹为竖心旁,熊为「董」,合起来是「懂」。用 mask 挖负空间,
-     所以熊眼、腹带、叶子周围的白边都是透空的,底色透过来,换背景不用改图。 */
-  .mark{display:flex;align-items:center;flex:none;color:var(--ink)}
-  .mark svg{height:23px;width:auto;display:block}
   .hud{margin-left:auto;text-align:right;font-variant-numeric:tabular-nums;line-height:1.25}
   .hud .r{font-size:10.5px;color:var(--muted);letter-spacing:1.5px}
   .hud .s{font-family:var(--serif);font-size:19px;color:var(--gold)}
@@ -287,8 +283,15 @@
     font-variant-numeric:tabular-nums;line-height:1.1}
   .fin small{font-size:15px;color:var(--faint)}
   .endhd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .endhd h2{flex:1}                          /* 标题占住剩下的宽度,日期和关闭挤到右边 */
   .endday{font-size:11.5px;letter-spacing:1px;color:var(--faint);
     font-variant-numeric:tabular-nums;white-space:nowrap}
+  /* 关掉战绩回到地图。不怕关错 —— 底部那颗按钮这时正是「查看战绩」,随时开得回来。
+     负 margin 是为了让 32px 的点击热区不把标题行撑高:手指够得着,版面不变。 */
+  .eclose{border:0;background:none;color:var(--faint);font-size:19px;line-height:1;
+    width:32px;height:32px;margin:-6px -9px -6px -2px;cursor:pointer;
+    align-self:center;transition:color .2s}
+  .eclose:hover{color:var(--muted)}
   .erow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line-soft);font-size:12.5px}
   .erow .th{width:46px;height:46px;flex:none;border-radius:5px;overflow:hidden;border:1px solid var(--line)}
   .erow .th img{width:100%;height:100%;object-fit:cover;display:block}
@@ -415,7 +418,6 @@
 
 <div class="app" id="app">
   <header>
-    <span class="mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="80 122 352 282" aria-label="古懂"><mask id="gd" maskUnits="userSpaceOnUse" x="80" y="122" width="352" height="282"><g transform="translate(60,0)"><g fill="#fff"><path d="M79.0 128.0 L113.0 128.0 Q118.0 128.0 118.0 133.0 C114.0 153.0 114.0 186.2 118.0 206.2 Q118.0 211.2 113.0 211.2 L79.0 211.2 Q74.0 211.2 74.0 206.2 C78.0 186.2 78.0 153.0 74.0 133.0 Q74.0 128.0 79.0 128.0 Z"/><path d="M79.0 221.2 L113.0 221.2 Q118.0 221.2 118.0 226.2 C114.0 246.2 114.0 279.5 118.0 299.4 Q118.0 304.4 113.0 304.4 L79.0 304.4 Q74.0 304.4 74.0 299.4 C78.0 279.5 78.0 246.2 74.0 226.2 Q74.0 221.2 79.0 221.2 Z"/><path d="M79.0 314.4 L113.0 314.4 Q118.0 314.4 118.0 319.4 C114.0 339.4 114.0 372.7 118.0 392.6 Q118.0 397.6 113.0 397.6 L79.0 397.6 Q74.0 397.6 74.0 392.6 C78.0 372.7 78.0 339.4 74.0 319.4 Q74.0 314.4 79.0 314.4 Z"/></g><g transform="translate(57.0,42.32) scale(0.75,0.84)"><g fill="#fff"><circle cx="176" cy="140" r="38"/><circle cx="336" cy="140" r="38"/><path d="M256 112 C318 112 356 152 362 206 C396 244 412 306 412 362 C412 398 396 414 366 414 L146 414 C116 414 100 398 100 362 C100 306 116 244 150 206 C156 152 194 112 256 112 Z"/></g><g fill="#000"><path d="M194 186 L238 176 L234 200 L192 206 Z"/><path d="M318 186 L274 176 L278 200 L320 206 Z"/><rect x="112" y="278" width="128" height="26"/><rect x="272" y="278" width="128" height="26"/><rect x="104" y="334" width="136" height="26"/><rect x="272" y="334" width="136" height="26"/></g><path d="M256 112 C318 112 356 152 362 206 C396 244 412 306 412 362 C412 398 396 414 366 414 L146 414 C116 414 100 398 100 362 C100 306 116 244 150 206 C156 152 194 112 256 112 Z" fill="none" stroke="#fff" stroke-width="18"/></g><path d="M112 180 C152 187 171 202 184 226 C157 229 132 218 108 207 Z" fill="none" stroke="#000" stroke-width="12" stroke-linejoin="round"/><g fill="#fff"><path d="M112 180 C152 187 171 202 184 226 C157 229 132 218 108 207 Z"/><path d="M82 216 C56 226 44 244 26 272 C58 274 78 260 92 240 Z"/></g></g></mask><rect x="80" y="122" width="352" height="282" fill="currentColor" mask="url(#gd)"/></svg></span>
     <div class="brand">古懂</div>
     <div class="hud"><div class="r">第 <span id="hR">1</span>/<span id="hT">4</span> 件</div>
       <div class="s" id="hS">0</div></div>
@@ -490,7 +492,7 @@
     <div id="hintwrap">
       <div class="hintbar">
         <button class="hbtn" id="hOpen">使用提示</button>
-        <span class="hleft">今日剩余 <b id="hLeft">3</b> 次</span>
+        <span class="hleft">剩余 <b id="hLeft">3</b> 次</span>
       </div>
       <div class="hpick" id="hPick">
         <button class="hbtn" id="hGeo">缩小地域范围</button>
@@ -542,13 +544,13 @@
 
 <div class="over" id="over">
   <div class="end">
-    <div class="endhd"><h2 id="endTitle">古懂</h2><span class="endday" id="finSub">—</span></div>
+    <div class="endhd"><h2 id="endTitle">古懂</h2><span class="endday" id="finSub">—</span><button class="eclose" id="eClose" aria-label="关闭">×</button></div>
     <p class="fin" id="fin">0<small> / 400</small></p>
     <div class="etrack" id="eTrack"></div>
     <div class="edots" id="eDots"></div>
     <div class="dist" id="dist">
       <h3 id="distHd">今日全站分布</h3>
-      <p class="rankline">你超过了 <b id="pct">—</b>% 的成绩</p>
+      <p class="rankline">你超过了 <b id="pct">—</b>% 的玩家</p>
       <div class="bars" id="bars"></div>
       <div class="axis"><span>0</span><span id="axMid">—</span><span id="axMax">—</span></div>
     </div>
@@ -1675,6 +1677,9 @@ function renderDist(d,max){
     Math.max(2,Math.round(v/peak*74))+'px"></span>').join('');
   $('axMid').textContent=fn(Math.round(max/2)); $('axMax').textContent=fn(max);
 }
+/* 关掉战绩,回到地图。不销毁任何东西 —— 底部那颗按钮此刻正是「查看战绩」,
+   点一下重新 showEnd()。翻页位置不保留,回来落在最新一组,和刷新一致。 */
+$('eClose').onclick=()=>$('over').classList.remove('show');
 /* 再来一次:关掉浮层直接开局,不重载页面 —— 存档已经落盘,刷新也回得到这里 */
 $('setBtn').onclick=()=>{
   $('over').classList.remove('show');
@@ -1794,7 +1799,7 @@ async function buildCard(){
   g.fillStyle=CARD_GOLD; g.font=U(21).toFixed(0)+'px '+CARD_SERIF;
   g.fillText(String(d.pct),px,y+U(21)); px+=g.measureText(String(d.pct)).width;
   g.fillStyle=CARD_INK; g.font=U(15).toFixed(0)+'px '+CARD_SERIF;
-  g.fillText('% 的成绩',px,y+U(21));
+  g.fillText('% 的玩家',px,y+U(21));
   y+=U(39);
 
   const n=d.hist.length||1, peak=Math.max(1,...d.hist), gap=U(2);
