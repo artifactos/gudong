@@ -535,7 +535,6 @@
       <p class="rankline">你超过了 <b id="pct">—</b>% 的玩家</p>
       <div class="bars" id="bars"></div>
       <div class="axis"><span>0</span><span id="axMid">—</span><span id="axMax">—</span></div>
-      <p class="demo" id="distN"></p>
     </div>
     <div class="ebtns">
       <button class="b2 p" id="setBtn">再来一组</button>
@@ -1596,14 +1595,12 @@ function renderDist(d,max){
   const peak=Math.max(...hist,1);
   const pct=Math.round(below/N*100);
   $('pct').textContent=pct;
-  /* 兜底曲线不挂标题:「今日全站分布」是句会被当真的话,而那时候可能一个人都没有;
-     另起一个「分布参考」又等于在版面上写「这块是假的」。直接从「你超过了」开始,
-     不声张也不撒谎。 */
+  /* 这一块只剩「你超过了 X%」和柱子。标题和人数都拿掉了:冷清的时候曲线是
+     生成的,写「今日全站分布」会被当真,写「分布参考」等于在版面上标出接缝,
+     写「今天已有 1 人完成」则是把冷清本身摆出来给人看。 */
   $('distHd').textContent='';
-  $('distN').textContent=d.src==='today'?('今天已有 '+N+' 人完成'):
-    (d.todayN!=null?'今天已有 '+d.todayN+' 人完成':'');
   /* 卡片要照着这块画一遍,别让它自己再算一次 —— 两处算法一旦分叉就对不上 */
-  S.dist={hist:hist,mine:mine,pct:pct,max:max,hd:$('distHd').textContent,n:$('distN').textContent};
+  S.dist={hist:hist,mine:mine,pct:pct,max:max,hd:''};
   $('bars').innerHTML=hist.map((v,i)=>'<span class="'+(i===mine?'you':'')+'" style="height:'+
     Math.max(2,Math.round(v/peak*74))+'px"></span>').join('');
   $('axMid').textContent=fn(Math.round(max/2)); $('axMax').textContent=fn(max);
