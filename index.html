@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#F4F0E6">
 <meta name="description" content="古懂:看一张文物照片,在中国地图上标出它的老家,在时间轴上圈出它的年代。">
 <title>古懂</title>
+<script defer src="https://cloud.umami.is/script.js" data-website-id="4ab6e665-d80e-43bf-aa4c-9eb00a960005"></script>
 <style>
   /* 自带宋体。iOS 有 Songti SC,安卓一个中文衬线都没有 —— 不自带的话
      刊名、问句、文物名、分数在半数手机上会变成黑体,这个站的样子就没了。
@@ -528,14 +529,15 @@
     <div class="endhd"><h2 id="endTitle">古懂</h2><span class="endday" id="finSub">—</span></div>
     <p class="fin" id="fin">0<small> / 400</small></p>
     <div id="eRows"></div>
-    <div class="dist">
-      <h3>今日全站分布</h3>
+    <div class="dist" id="dist">
+      <h3 id="distHd">今日全站分布</h3>
       <p class="rankline">你超过了 <b id="pct">—</b>% 的玩家</p>
       <div class="bars" id="bars"></div>
       <div class="axis"><span>0</span><span id="axMid">—</span><span id="axMax">—</span></div>
+      <p class="demo" id="distN"></p>
     </div>
     <div class="ebtns">
-      <button class="b2 p" id="setBtn">再来一次</button>
+      <button class="b2 p" id="setBtn">再来一组</button>
       <button class="b2 p" id="shareBtn">保存战绩卡片</button>
     </div>
     <p class="demo" id="nextDay">每天三套,明天见</p>
@@ -973,6 +975,13 @@ $('zIn').onclick=()=>zoomAt(VX+VW/2,VY+VH/2,k*1.9);
 $('zOut').onclick=()=>zoomAt(VX+VW/2,VY+VH/2,k/1.9);
 $('zRst').onclick=()=>{k=K_START;tx=0;ty=0;apply();};
 
+/* Umami 是无 cookie 的,不设标识、不跨站跟踪,所以不需要同意弹窗 ——
+   前提是我们别往里塞能指向个人的东西。这里只报聚合量:得分、用没用提示、
+   存没存卡片。脚本没加载成功时静默跳过,统计不该有能力弄坏游戏。 */
+function tally(name,data){          /* 不叫 track:那个名字被图集的滚动容器占了 */
+  try{ if(window.umami&&umami.track)umami.track(name,data); }catch(e){}
+}
+
 /* ============ 存档:每日一局 + 连胜 ============
    日期一律按 UTC+8 计算。用本地时区的话,不同时区的人会拿到不同的"今天",
    题目不同步,分享战绩就对不上。 */
@@ -988,15 +997,43 @@ const prevLabel=l=>{const[y,m,d]=l.split('-').map(Number);
   const t=new Date(Date.UTC(y,m-1,d-1));
   return t.getUTCFullYear()+'-'+pad2(t.getUTCMonth()+1)+'-'+pad2(t.getUTCDate());};
 const DIST={"2026-07-20":{"buckets":[0,0,0,0,0,2,1,3,3,6,8,7,6,2,2,2,1,1,0,0,0,0],"totalPlayers":44},"2026-07-21":{"buckets":[0,0,0,1,1,0,3,1,3,8,5,4,3,3,6,4,1,1,0,0,0,0],"totalPlayers":44},"2026-07-22":{"buckets":[0,0,0,0,0,0,1,4,6,5,3,9,5,1,1,3,2,0,0,0,0,0],"totalPlayers":40},"2026-07-23":{"buckets":[0,0,0,0,0,1,0,1,10,4,3,7,11,9,4,5,3,1,0,1,0,0],"totalPlayers":60},"2026-07-24":{"buckets":[0,0,0,0,0,1,1,4,3,4,3,2,5,4,1,2,0,0,0,0,0,0],"totalPlayers":30},"2026-07-25":{"buckets":[0,0,0,1,0,0,3,8,2,4,7,6,3,5,3,0,0,0,1,0,0,0],"totalPlayers":43},"2026-07-26":{"buckets":[0,0,0,0,1,1,2,2,3,4,1,3,4,9,2,2,5,0,1,0,0,0],"totalPlayers":40},"2026-07-27":{"buckets":[0,0,0,0,1,0,2,2,1,2,3,2,5,1,4,0,1,1,0,0,0,0],"totalPlayers":25},"2026-07-28":{"buckets":[0,0,0,0,0,1,2,3,2,3,6,8,3,4,3,3,0,0,0,0,0,0],"totalPlayers":38},"2026-07-29":{"buckets":[0,0,0,0,1,0,1,1,0,2,3,5,4,4,4,2,0,0,0,0,0,0],"totalPlayers":27},"2026-07-30":{"buckets":[0,0,0,0,0,1,0,0,4,3,4,12,3,2,10,0,1,2,0,0,0,0],"totalPlayers":42},"2026-07-31":{"buckets":[0,0,0,0,0,1,0,4,0,4,5,5,3,1,1,0,3,2,0,0,0,0],"totalPlayers":29},"2026-08-01":{"buckets":[0,0,0,0,1,1,2,1,4,7,10,3,15,6,2,2,0,2,0,0,0,0],"totalPlayers":56},"2026-08-02":{"buckets":[0,0,0,0,0,0,0,0,3,3,2,2,5,3,4,1,1,1,0,0,0,0],"totalPlayers":25},"2026-08-03":{"buckets":[0,0,0,0,0,2,0,3,5,6,5,4,2,6,5,3,3,2,0,0,0,0],"totalPlayers":46},"2026-08-04":{"buckets":[0,0,0,0,0,1,0,5,4,5,2,4,5,6,6,3,4,0,1,0,0,0],"totalPlayers":46},"2026-08-05":{"buckets":[0,0,0,0,0,1,3,1,1,5,5,3,4,2,4,2,1,0,0,0,0,0],"totalPlayers":32},"2026-08-06":{"buckets":[0,0,0,0,0,0,1,2,5,11,6,5,6,2,3,2,0,1,0,0,0,0],"totalPlayers":44},"2026-08-07":{"buckets":[0,0,0,0,1,3,6,4,3,3,10,3,7,6,3,4,3,1,1,0,0,0],"totalPlayers":58},"2026-08-08":{"buckets":[0,0,0,0,0,0,0,2,1,5,3,5,6,0,1,5,3,0,0,0,0,0],"totalPlayers":31},"2026-08-09":{"buckets":[0,0,0,0,0,0,2,1,6,4,11,4,5,3,5,6,2,2,2,0,0,0],"totalPlayers":53},"2026-08-10":{"buckets":[0,0,0,0,0,0,4,1,5,3,3,7,5,5,4,1,1,0,0,0,0,0],"totalPlayers":39},"2026-08-11":{"buckets":[0,0,0,0,0,0,1,4,4,4,6,9,3,5,1,2,3,3,2,0,0,0],"totalPlayers":47},"2026-08-12":{"buckets":[0,0,0,0,0,2,5,6,2,3,5,8,3,8,8,2,2,0,0,0,0,0],"totalPlayers":54},"2026-08-13":{"buckets":[0,0,0,0,0,0,4,1,1,5,5,10,5,3,6,0,2,0,0,0,0,0],"totalPlayers":42},"2026-08-14":{"buckets":[0,0,0,0,0,1,0,2,8,7,10,5,6,11,0,3,3,0,0,0,0,0],"totalPlayers":56},"2026-08-15":{"buckets":[0,0,0,0,0,1,2,1,1,7,6,3,5,4,5,2,0,0,0,0,0,0],"totalPlayers":37},"2026-08-16":{"buckets":[0,0,0,0,1,0,5,2,5,7,10,8,4,6,1,1,1,2,0,0,0,0],"totalPlayers":53},"2026-08-17":{"buckets":[0,0,0,0,0,0,2,5,4,1,7,7,6,6,2,1,3,1,0,0,0,0],"totalPlayers":45},"2026-08-18":{"buckets":[0,0,0,0,1,1,1,1,1,5,8,5,7,3,1,1,0,1,0,0,0,0],"totalPlayers":36},"2026-08-19":{"buckets":[0,0,0,0,0,0,1,2,3,2,3,4,5,1,3,1,0,1,0,0,0,0],"totalPlayers":26},"2026-08-20":{"buckets":[0,0,0,0,2,3,0,3,0,11,11,7,7,7,4,1,2,1,0,0,0,0],"totalPlayers":59},"2026-08-21":{"buckets":[0,0,0,0,1,1,1,3,3,7,5,4,5,9,2,2,2,1,0,0,0,0],"totalPlayers":46},"2026-08-22":{"buckets":[0,0,0,0,1,0,1,1,3,2,9,5,9,3,1,5,0,1,0,0,0,0],"totalPlayers":41},"2026-08-23":{"buckets":[0,0,0,0,1,0,0,3,5,3,8,5,6,4,4,2,1,0,0,0,0,0],"totalPlayers":42},"2026-08-24":{"buckets":[0,0,0,0,1,1,5,2,2,4,7,11,6,2,2,2,1,1,0,0,0,0],"totalPlayers":47},"2026-08-25":{"buckets":[0,0,0,0,0,1,1,1,1,6,4,5,3,2,4,0,1,1,0,0,0,0],"totalPlayers":30},"2026-08-26":{"buckets":[0,0,0,0,0,1,0,2,1,4,3,5,7,6,1,2,2,0,0,0,0,0],"totalPlayers":34},"2026-08-27":{"buckets":[0,0,0,0,0,0,3,1,3,3,6,10,6,3,5,2,1,1,0,0,0,0],"totalPlayers":44},"2026-08-28":{"buckets":[0,0,0,0,1,0,0,2,4,2,4,2,4,2,1,4,0,0,0,0,0,0],"totalPlayers":26},"2026-08-29":{"buckets":[0,0,0,0,0,0,1,5,2,5,2,2,8,5,0,2,0,1,0,0,0,0],"totalPlayers":33},"2026-08-30":{"buckets":[0,0,0,1,1,1,3,3,5,7,3,4,5,4,6,6,3,1,1,0,0,0],"totalPlayers":54},"2026-08-31":{"buckets":[0,0,0,0,1,3,1,7,5,2,3,2,3,2,3,2,2,0,0,0,0,0],"totalPlayers":36},"2026-09-01":{"buckets":[0,0,0,1,0,0,1,1,9,5,10,7,6,3,4,2,0,1,0,1,0,0],"totalPlayers":51},"2026-09-02":{"buckets":[0,0,0,0,0,0,1,2,3,2,8,6,6,4,3,3,1,1,0,0,0,0],"totalPlayers":40},"2026-09-03":{"buckets":[0,0,0,0,0,1,0,2,1,1,8,6,3,2,1,1,1,1,0,0,0,0],"totalPlayers":28},"2026-09-04":{"buckets":[0,0,0,0,0,0,3,2,1,1,3,3,3,4,1,4,0,1,0,1,0,0],"totalPlayers":27},"2026-09-05":{"buckets":[0,0,0,0,0,1,2,0,2,5,4,8,2,8,3,4,3,0,0,0,0,0],"totalPlayers":42},"2026-09-06":{"buckets":[0,0,0,0,0,0,1,4,2,7,11,8,7,5,3,6,4,0,0,1,0,0],"totalPlayers":59},"2026-09-07":{"buckets":[0,0,0,0,0,2,0,2,5,2,4,5,3,1,4,1,2,0,1,0,0,0],"totalPlayers":32},"2026-09-08":{"buckets":[0,0,0,0,0,2,0,0,3,5,4,6,5,3,1,1,0,1,0,0,0,0],"totalPlayers":31},"2026-09-09":{"buckets":[0,0,0,0,1,0,1,5,3,4,3,6,4,3,5,3,3,3,1,0,0,0],"totalPlayers":45},"2026-09-10":{"buckets":[0,0,0,0,0,1,0,3,3,6,5,5,2,4,4,1,0,1,0,0,0,0],"totalPlayers":35},"2026-09-11":{"buckets":[0,0,0,0,0,2,5,3,4,4,5,11,7,4,5,2,1,1,0,0,0,0],"totalPlayers":54},"2026-09-12":{"buckets":[0,0,0,0,0,0,0,1,3,2,4,6,3,6,2,2,0,1,0,1,0,0],"totalPlayers":31},"2026-09-13":{"buckets":[0,0,0,0,2,1,1,4,7,4,0,2,4,5,1,3,0,0,0,0,0,0],"totalPlayers":34},"2026-09-14":{"buckets":[0,0,0,0,2,1,1,0,4,7,1,8,4,4,2,3,2,0,0,0,0,0],"totalPlayers":39},"2026-09-15":{"buckets":[0,0,0,0,2,1,2,2,4,6,4,6,7,6,2,2,0,0,0,0,0,0],"totalPlayers":44},"2026-09-16":{"buckets":[0,0,0,0,1,1,3,2,2,6,1,0,4,3,1,0,1,0,0,0,0,0],"totalPlayers":25},"2026-09-17":{"buckets":[0,0,0,1,0,3,1,3,9,2,9,2,7,4,3,2,1,0,0,0,0,0],"totalPlayers":47}};
+/* 分布后端的地址,构建时注入;留空就整块不出现,不拿假数据充数 */
+const API="";
 /* 当日分布。有静态兜底就用兜底,否则按日期种子现生成一条形状合理的曲线。 */
-function loadDist(day){
-  if(DIST[day])return DIST[day];
+/* 分布按可信度依次退让:今日真实 -> 近三十天基线 -> 兜底曲线。
+   二十这个门槛不是拍的:三五个人算出来的分位数没有意义,反而会给早来的人
+   一个荒唐的名次。人不够时标题写「分布参考」,不写「今日全站」——
+   曲线可以是垫的,但不能顺口说成今天真有这些人。 */
+const DIST_MIN=20;
+function seedDist(day){
+  if(DIST[day])return {buckets:DIST[day].buckets,total:DIST[day].totalPlayers,src:'seed'};
   const r=mulberry32(daySeed()), BINS=22, buckets=new Array(BINS).fill(0), n=40;
   for(let i=0;i<n;i++){
     const g=(r()+r()+r())/3;
     buckets[Math.min(BINS-1,Math.floor(Math.max(0,Math.min(.999,0.14+0.76*g+(r()-0.5)*0.06))*BINS))]++;
   }
-  return {buckets:buckets,totalPlayers:n};
+  return {buckets:buckets,total:n,src:'seed'};
+}
+async function fetchDist(day){
+  if(!API)return null;
+  try{
+    const r=await fetch(API+'/d/'+day,{cache:'no-store'});
+    if(!r.ok)return null;
+    const d=await r.json();
+    if(d.totalPlayers>=DIST_MIN)return {buckets:d.buckets,total:d.totalPlayers,src:'today'};
+    if(d.baselinePlayers>=DIST_MIN)
+      return {buckets:d.baseline,total:d.baselinePlayers,src:'baseline',todayN:d.totalPlayers};
+    return {...seedDist(day),todayN:d.totalPlayers};
+  }catch(e){return null;}
+}
+function postScore(day,score){
+  if(!API)return;
+  try{
+    const body=JSON.stringify({d:day,v:score});
+    /* sendBeacon 在页面被切走时也送得出去,而且不占用主线程 */
+    if(navigator.sendBeacon)navigator.sendBeacon(API+'/s',new Blob([body],{type:'application/json'}));
+    else fetch(API+'/s',{method:'POST',headers:{'content-type':'application/json'},body:body,keepalive:true});
+  }catch(e){}
 }
 function hintsSave(){
   const sv=loadSave(); sv.hintDay=S.label; sv.hintsLeft=S.hintsLeft; putSave(sv);
@@ -1208,6 +1245,16 @@ function persistSet(){
   sv.best=Math.max(sv.best||0,S.dayTotal);
   putSave(sv); return sv;
 }
+/* 回放某一组已经打完的战绩:把状态灌回去,直接开结算浮层 */
+function replaySet(n){
+  S.set=n; S.items=S.day[n];
+  S.total=S.sets[n].total; S.res=S.sets[n].res;
+  S.i=S.items.length-1;
+  $('hT').textContent=S.items.length; $('hS').textContent=fn(S.total);
+  round();
+  $('steps').innerHTML=S.items.map(()=>'<i class="done"></i>').join('');
+  showEnd();
+}
 function round(){
   const it=S.items[S.i];
   S.pin=null; S.done=false; S.usedThis={};
@@ -1310,6 +1357,7 @@ $('hOpen').onclick=()=>{
 function useHint(kind){
   if(S.hintsLeft<=0||S.usedThis[kind])return;
   S.hintsLeft--; S.usedThis[kind]=true; hintsSave();
+  tally('hint',{kind:kind});
   const it=S.items[S.i];
   let txt;
   if(kind==='geo'){txt='地域范围 · '+it.hintGeo;}
@@ -1461,6 +1509,7 @@ function showEnd(){
   const max=S.items.length*MAX_ITEM;
   persistSet();
   const last=S.set>=SETS_PER_DAY-1;
+  tally('round',{n:S.set+1,score:S.total,last:last});
   $('endTitle').textContent='古懂';
   $('fin').innerHTML=fn(S.total)+'<small> / '+fn(max)+'</small>';
   $('setBtn').style.display=last?'none':'';   /* 每轮打完都能存卡片,不必等到最后一轮 */
@@ -1477,23 +1526,44 @@ function showEnd(){
       '<span class="pt">'+fn(r.item)+'</span>';
     rows.appendChild(div);
   });
-  /* 分布:优先用静态兜底文件(上线后应当用真实数据覆盖),没有对应日期才现生成一条。
-     接口就位后把 loadDist 换成 GET /distribution/{day} 即可,前端其余不用动。 */
-  const dist=loadDist(S.label), hist=dist.buckets, BINS=hist.length;
-  const N=Math.max(1,dist.totalPlayers);
+  /* 分布来自 server/worker.js;拿不到就不画这一块 */
+  /* 同一局只上报一次。刷新、回看战绩都不该再计一次 —— 分布是给所有人看的,
+     一个人的重复提交就是在改别人看到的数字。想开隐身模式重来的,就让他重来:
+     再拦下去要付的代价(账号、指纹)比这件事本身重得多。 */
+  {const sv=loadSave(), sent=(sv.sentDay===S.label&&Array.isArray(sv.sent))?sv.sent:[];
+   if(sent.indexOf(S.set)<0){
+     postScore(S.label,S.total);
+     sv.sentDay=S.label; sv.sent=sent.concat([S.set]); putSave(sv);
+   }}
+  renderDist(seedDist(S.label),max);          /* 先用兜底曲线撑住版面 */
+  $('over').classList.add('show');
+  prepCard();
+  /* 真实数据回来了再重画一次,顺带把卡片重新生成 —— 卡片上画的是同一块 */
+  fetchDist(S.label).then(d=>{ if(d&&$('over').classList.contains('show')){renderDist(d,max);prepCard();} });
+}
+function renderDist(d,max){
+  const box=$('dist');
+  if(!d||!d.buckets){                        /* 没有可信的分布就整块不出现 */
+    box.style.display='none'; S.dist=null; return;
+  }
+  box.style.display='';
+  const hist=d.buckets, BINS=hist.length, N=Math.max(1,d.total);
   const mine=Math.min(BINS-1,Math.floor(S.total/max*BINS));
   let below=0;
   for(let i=0;i<mine;i++)below+=hist[i];
   below+=hist[mine]/2;                       /* 自己所在那一档折半计,免得同分互相碾压 */
   const peak=Math.max(...hist,1);
-  $('pct').textContent=Math.round(below/N*100);
+  const pct=Math.round(below/N*100);
+  $('pct').textContent=pct;
+  $('distHd').textContent=d.src==='today'?'今日全站分布':
+    (d.src==='baseline'?'近三十天分布':'分布参考');
+  $('distN').textContent=d.src==='today'?('今天已有 '+N+' 人完成'):
+    (d.todayN!=null?'今天已有 '+d.todayN+' 人完成':'');
   /* 卡片要照着这块画一遍,别让它自己再算一次 —— 两处算法一旦分叉就对不上 */
-  S.dist={hist:hist,mine:mine,pct:Math.round(below/N*100),max:max};
+  S.dist={hist:hist,mine:mine,pct:pct,max:max,hd:$('distHd').textContent,n:$('distN').textContent};
   $('bars').innerHTML=hist.map((v,i)=>'<span class="'+(i===mine?'you':'')+'" style="height:'+
     Math.max(2,Math.round(v/peak*74))+'px"></span>').join('');
   $('axMid').textContent=fn(Math.round(max/2)); $('axMax').textContent=fn(max);
-  $('over').classList.add('show');
-  prepCard();
 }
 /* 再来一次:关掉浮层直接开局,不重载页面 —— 存档已经落盘,刷新也回得到这里 */
 $('setBtn').onclick=()=>{
@@ -1552,8 +1622,9 @@ async function buildCard(){
   const res=S.res, W=CARD_W, CW=W-C_PAD*2;
   /* 「明天见」只在最后一轮出现 —— 前两轮还能接着玩,这句话在那儿是假的 */
   const last=S.set>=SETS_PER_DAY-1;
-  const H=Math.round(C_PAD_T+U(25)+U(69)+res.length*ROW_H+U(33+18+39)+BARS_H+U(17)
-                     +(last?U(21):0)+C_PAD_B);
+  const d=S.dist;                             /* 没有真分布时,卡片上也不留那块空位 */
+  const H=Math.round(C_PAD_T+U(25)+U(69)+res.length*ROW_H
+                     +(d?U(33+18+39)+BARS_H+U(17):0)+(last?U(21):0)+C_PAD_B);
   const c=document.createElement('canvas'); c.width=W; c.height=H;
   const g=c.getContext('2d');
   g.fillStyle=CARD_BG; g.fillRect(0,0,W,H);
@@ -1600,10 +1671,10 @@ async function buildCard(){
     y+=ROW_H;
   });
 
-  const d=S.dist||{hist:[],mine:-1,pct:0,max:res.length*MAX_ITEM};
+  if(d){
   y+=U(18); rule(g,y,W,CARD_SOFT); y+=U(14);
   g.fillStyle=CARD_MUTED; g.font=U(11).toFixed(0)+'px '+CARD_SANS;
-  spaced(g,'今日全站分布',C_PAD,y+U(11),U(3));
+  spaced(g,d.hd||'今日全站分布',C_PAD,y+U(11),U(3));
   y+=U(18);
   g.fillStyle=CARD_INK; g.font=U(15).toFixed(0)+'px '+CARD_SERIF;
   const head='你超过了 ';
@@ -1633,6 +1704,7 @@ async function buildCard(){
   g.textAlign='center'; g.fillText(fn(Math.round((d.max||res.length*MAX_ITEM)/2)),W/2,y+U(10));
   g.textAlign='right';  g.fillText(fn(d.max||res.length*MAX_ITEM),W-C_PAD,y+U(10));
   y+=U(17);
+  }
 
   if(last){
     g.textAlign='left'; g.fillStyle=CARD_FAINT; g.font=U(9.5).toFixed(0)+'px '+CARD_SANS;
@@ -1679,6 +1751,7 @@ function showCardPreview(){
   $('cardlb').classList.add('show'); document.body.style.overflow='hidden';
 }
 $('shareBtn').onclick=()=>{
+  tally('card');
   if(cardBlob){ if(saveCard(cardBlob))return; showCardPreview(); return; }
   $('shareBtn').textContent='生成中…';
   (cardJob||prepCard()).then(b=>{
@@ -1749,18 +1822,12 @@ if('scrollRestoration' in history)history.scrollRestoration='manual';
   const lab=dayLabel(), sv=loadSave();
   apply();
   const done=(sv.day===lab)?restoreDaily(sv):-1;
-  if(done<0){
+  if(done<1){
     newGame(daySeed(),lab);
-  }else if(done>=SETS_PER_DAY){              /* 三套都打完了,回放最后一套的战绩 */
-    S.set=SETS_PER_DAY-1; S.items=S.day[S.set];
-    S.total=S.sets[S.set].total; S.res=S.sets[S.set].res;
-    S.i=S.items.length-1;
-    $('hT').textContent=S.items.length; $('hS').textContent=fn(S.total);
-    round();
-    $('steps').innerHTML=S.items.map(()=>'<i class="done"></i>').join('');
-    showEnd();
   }else{
-    startSet(done);                          /* 打了一半,从下一套接着来 */
+    /* 打过就先把上一组的战绩摆出来,不直接把人丢进新的一组。
+       卡片是这一天的成果,回来第一眼该看见它;要不要再来一组由他自己按。 */
+    replaySet(done-1);
   }
   scrollTo(0,0); syncHint(); syncFoot();
 })();
