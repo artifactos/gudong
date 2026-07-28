@@ -7,6 +7,15 @@
 <meta name="description" content="古懂:看一张文物照片,在中国地图上标出它的老家,在时间轴上圈出它的年代。">
 <title>古懂</title>
 <style>
+  /* 自带宋体。iOS 有 Songti SC,安卓一个中文衬线都没有 —— 不自带的话
+     刊名、问句、文物名、分数在半数手机上会变成黑体,这个站的样子就没了。
+     字体按题库裁过(约 1500 字,400KB),swap 让文字先用后备字体显示、字体到了再换,
+     不会因为等字体白屏。 */
+  @font-face{
+    font-family:"WWSerif";
+    src:url("font/serif.woff2") format("woff2");
+    font-weight:400 700; font-style:normal; font-display:swap;
+  }
   :root{
     /* 青绿山水一路:宣纸作底,墨为字,朱砂盖印,石青与赭石点缀。
        比起通用的米色+灰绿,这组的色相更明确 —— 纸偏冷、青偏矿物、朱砂压深,
@@ -16,7 +25,7 @@
     --ink:#1E1B16; --muted:#5E5748; --faint:#948C7A;
     --gold:#8A6A3B; --gold-soft:rgba(138,106,59,.12); --gold-dim:#BCAA88;
     --patina:#356B63; --patina-deep:#CBDCD5; --cinnabar:#A8332A;
-    --serif:"Songti SC","STSong","Noto Serif SC","Noto Serif CJK SC","SimSun",serif;
+    --serif:"WWSerif","Songti SC","STSong","Noto Serif SC","Noto Serif CJK SC","SimSun",serif;
     --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
     color-scheme:light;
   }
@@ -29,7 +38,9 @@
       url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2746%27%20height%3D%2746%27%20viewBox%3D%270%200%2046%2046%27%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%238A6A2E%27%20stroke-width%3D%270.7%27%20stroke-linecap%3D%27square%27%20opacity%3D%270.03%27%3E%3Cpath%20d%3D%27M3%203h17v17h-11v-10.5h5.5v5%27%2F%3E%3Cpath%20d%3D%27M26%2026h17v17h-11v-10.5h5.5v5%27%2F%3E%3Cpath%20d%3D%27M26%203h17v17h-11v-10.5h5.5v5%27%2F%3E%3Cpath%20d%3D%27M3%2026h17v17h-11v-10.5h5.5v5%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
       radial-gradient(1200px 700px at 50% -12%,rgba(122,90,40,.06),transparent 66%);
     background-repeat:repeat,no-repeat;}
-  .app{max-width:452px;margin:0 auto;padding:0 14px 40px;position:relative}
+  /* 底部不留内边距 —— 页脚就是最后一样东西,它下面的空白是白留的。
+     收尾的呼吸量交给 footer 自己的 padding-bottom。 */
+  .app{max-width:452px;margin:0 auto;padding:0 14px;position:relative}
   @media (min-width:520px) and (max-width:1079px){
     .app{border-left:1px solid var(--line-soft);border-right:1px solid var(--line-soft);min-height:100vh}
   }
@@ -116,18 +127,6 @@
   .prov{fill:#F0EADC;stroke:#B5AE9E;vector-effect:non-scaling-stroke;stroke-width:.7}
   .prov.truth{fill:#C6E0D0;stroke:var(--patina);stroke-width:1.3}
   .prov.wrong{fill:#F2CFC6;stroke:var(--cinnabar);stroke-width:1.3}
-  /* 拖钉放大镜:镜心就压在钉尖上,十字丝对准的就是真正的落点 —— 抬到别处的话,
-     还要在心里换算一次「镜子中间对应地图哪儿」,那正是要省掉的一步 */
-  .loupe{position:absolute;left:0;top:0;width:132px;height:132px;border-radius:50%;
-    overflow:hidden;border:2px solid var(--panel);background:var(--stage);
-    box-shadow:0 8px 22px rgba(38,34,29,.32);pointer-events:none;display:none;z-index:5}
-  .loupe.on{display:block}
-  .loupe svg{width:100%;height:100%;display:block}
-  .loupe .lx{position:absolute;left:50%;top:50%;width:26px;height:26px;
-    margin:-13px 0 0 -13px;border:1.5px solid var(--cinnabar);border-radius:50%}
-  .loupe .lx::before,.loupe .lx::after{content:"";position:absolute;background:var(--cinnabar)}
-  .loupe .lx::before{left:50%;top:-9px;width:1.5px;height:44px;margin-left:-.75px}
-  .loupe .lx::after{top:50%;left:-9px;height:1.5px;width:44px;margin-top:-.75px}
   .prov.hot{fill:#E4DCC7;stroke:#9C9483}
   .lbl.hot{fill:#2F2A20}
   .jd{fill:none;stroke:#6F8494;vector-effect:non-scaling-stroke;stroke-width:2;stroke-linecap:round}
@@ -312,7 +311,7 @@
   .b2.p{border-color:var(--gold);color:var(--gold)}
   button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   footer{margin-top:20px;font-size:9.5px;color:var(--faint);letter-spacing:.4px;line-height:1.65;
-    text-align:center;border-top:1px solid var(--line-soft);padding-top:10px}
+    text-align:center;border-top:1px solid var(--line-soft);padding:10px 0 14px}
   .fnote{display:block}
   .fnote:empty{display:none}
   /* ---------- 桌面 ---------- */
@@ -456,10 +455,6 @@
 
   <div class="mapwrap" id="mapwrap">
       <svg id="map" role="application" aria-label="中国地图,拖动平移、双指或滚轮缩放、点击放置图钉"></svg>
-      <div class="loupe" id="loupe" aria-hidden="true">
-        <svg id="loupeSvg" preserveAspectRatio="xMidYMid slice"><use href="#world"/></svg>
-        <span class="lx"></span>
-      </div>
       <span class="zoomtag" id="zoomTag">×1.0</span>
       <span class="maphint" id="mapHint">点击地图放置图钉</span>
       <div class="mapbtns">
@@ -612,7 +607,6 @@ const provByCode={}; GEO.prov.forEach(p=>provByCode[p.a]=p);
    主图上没有海南,点在那儿既标不出红色也算不出省。 */
 const SOUTH_LAT=17.5;
 const cam=E('g',{id:'cam'});
-const world=E('g',{id:'world'});   /* 只装底图几何,放大镜 <use> 的就是它 */
 const gLand=E('g',{}), gIsl=E('g',{}), gJd=E('g',{}), gLbl=E('g',{}), gMark=E('g',{});
 const mainPts=[], scsPts=[];
 const PROV_SIZE={};   /* 省的投影后外接框对角线,用来决定标注谁先占位 */
@@ -645,10 +639,7 @@ GEO.isl.forEach(pt=>{
 /* 九段线整体进插图 —— 它描的就是南海那片海域,拆开画两边反而读不通 */
 const jdRings=GEO.jd.map(r=>{const q=proj(r); q.forEach(v=>scsPts.push(v)); return q;});
 
-/* 省名不进 world:放大 3 倍后一个「湖北」就糊满整个镜面,
-   而放大镜要看的恰恰是被字盖住的那截省界。 */
-world.append(gLand,gIsl,gJd);
-cam.append(world,gLbl,gMark);
+cam.append(gLand,gIsl,gJd,gLbl,gMark);
 svg.appendChild(cam);
 
 const X0=Math.min(...mainPts.map(p=>p[0])), X1=Math.max(...mainPts.map(p=>p[0]));
@@ -833,7 +824,7 @@ function pinNode(x,y,color){
 
 /* ---- 手势:拖动平移 / 滚轮·双指缩放 / 轻点放钉 ---- */
 const wrap=$('mapwrap');
-const ptrs=new Map(); let moved=0,last=null,pinchD=0;
+const ptrs=new Map(); let moved=0,last=null,pinchD=0,pinchC=null;
 /* 缩放、复位这些浮层按钮在地图容器里,不加这道判断的话点一下会顺手放一枚图钉 */
 const onOverlay=e=>!!(e.target.closest&&e.target.closest('.mapbtns,.insetsvg'));
 /* 地图坐标 -> 屏幕像素,用来判断手指是不是摁在图钉上 */
@@ -842,21 +833,52 @@ function mapToScreen(m){
   return [f.r.left+f.ox+(m[0]*k+tx-VX)*f.s, f.r.top+f.oy+(m[1]*k+ty-VY)*f.s];
 }
 /* 摁住图钉就拖图钉,摁在别处才平移地图。图钉尖在锚点上,判定框往上偏一点罩住钉身。 */
-const PIN_GRAB=34;
-let dragPin=false;
+/* ---- 手势 ----
+   手机上一根手指管图钉、两根手指管地图。图钉画在指尖正上方 TOUCH_LIFT 处 ——
+   放大镜、准星都试过,真正的问题不是「看不清」而是「看不见」:手指就压在落点上。
+   把落点挪出手指,问题就没有了,也不用再往屏幕上加一块东西。
+   代价是地图最底下那一条够不着,靠 pointer capture 补:手指可以拖出地图外,
+   事件照样回到这里。 */
+const PIN_GRAB=34, TOUCH_LIFT=46;
+let dragPin=false, pinAtDown=null;
+/* 双指手势里两根手指落不到同一毫秒,第一根一落就已经把钉子挪走了。
+   所以按下时先记住原位,第二根手指一到就还回去 —— 缩放平移不该动答案。 */
+function restorePin(){
+  if(pinAtDown){placePin(pinAtDown);return;}
+  if(!S.pin)return;
+  S.pin=null;
+  if(pinEl){pinEl.remove();pinEl=null;}
+  setHot(null);
+  $('mapHint').textContent='点击地图放置图钉';
+  updateGo();
+}
+const isTouch=e=>e.pointerType!=='mouse';
 function onPin(e){
   if(!S.pin||S.done)return false;
   const p=mapToScreen(S.pin);
   return Math.hypot(e.clientX-p[0],e.clientY-(p[1]-13))<PIN_GRAB;
 }
+/* 指尖 -> 落点。鼠标不抬,光标本来就不挡视线 */
+function aimAt(e){
+  const v=toVB(e.clientX,e.clientY-(isTouch(e)?TOUCH_LIFT:0));
+  return toMap(v[0],v[1]);
+}
 wrap.addEventListener('pointerdown',e=>{
   if(onOverlay(e))return;
   wrap.setPointerCapture(e.pointerId);
   ptrs.set(e.pointerId,[e.clientX,e.clientY]);
-  if(ptrs.size===1){moved=0;last=[e.clientX,e.clientY];dragPin=onPin(e);}
-  else{
-    dragPin=false;   /* 两指了就一定是缩放,不是拖钉 */
-    if(ptrs.size===2){const v=[...ptrs.values()];pinchD=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]);}
+  if(ptrs.size===1){
+    moved=0; last=[e.clientX,e.clientY];
+    pinAtDown=S.pin?S.pin.slice():null;
+    /* 触摸:一根手指一律是落钉,按下就跟手。鼠标:只有抓住钉子才算拖钉 */
+    dragPin=S.done?false:(isTouch(e)?true:onPin(e));
+    if(dragPin&&isTouch(e))movePin(aimAt(e));
+  }else{
+    dragPin=false;   /* 两指了就一定是操作地图 */
+    restorePin();
+    if(ptrs.size===2){const v=[...ptrs.values()];
+      pinchD=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]);
+      pinchC=[(v[0][0]+v[1][0])/2,(v[0][1]+v[1][1])/2];}
   }
 });
 wrap.addEventListener('pointermove',e=>{
@@ -864,18 +886,18 @@ wrap.addEventListener('pointermove',e=>{
   ptrs.set(e.pointerId,[e.clientX,e.clientY]);
   if(ptrs.size===2){
     const v=[...ptrs.values()], d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]);
-    if(pinchD>0){const c=toVB((v[0][0]+v[1][0])/2,(v[0][1]+v[1][1])/2);zoomAt(c[0],c[1],k*(d/pinchD));}
-    pinchD=d; moved=99; dragPin=false; return;
+    const c=[(v[0][0]+v[1][0])/2,(v[0][1]+v[1][1])/2], f=vbFit();
+    if(pinchC){tx+=(c[0]-pinchC[0])/f.s; ty+=(c[1]-pinchC[1])/f.s;}   /* 两指也能平移 */
+    if(pinchD>0){const a=toVB(c[0],c[1]);zoomAt(a[0],a[1],k*(d/pinchD));}
+    else apply();
+    pinchD=d; pinchC=c; moved=99; dragPin=false; return;
   }
   if(!last)return;
   const dx=e.clientX-last[0], dy=e.clientY-last[1];
   moved+=Math.abs(dx)+Math.abs(dy);
   if(dragPin){                       /* 拖的是图钉,不是地图 */
     last=[e.clientX,e.clientY];
-    const v=toVB(e.clientX,e.clientY);
-    const m=toMap(v[0],v[1]);
-    movePin(m);
-    if(e.pointerType!=='mouse')showLoupe(m);   /* 手指盖住落点,鼠标不用 */
+    movePin(aimAt(e));
     return;
   }
   const f=vbFit();
@@ -884,15 +906,17 @@ wrap.addEventListener('pointermove',e=>{
 });
 function endPtr(e){
   if(onOverlay(e))return;
-  if(dragPin){dragPin=false;hideLoupe();updateGo();
-    ptrs.delete(e.pointerId);last=null;pinchD=0;return;}
-  if(ptrs.size===1&&moved<6&&!S.done){const v=toVB(e.clientX,e.clientY);
-    placePin(toMap(v[0],v[1]));}
-  ptrs.delete(e.pointerId); last=null; pinchD=0;
+  if(dragPin){dragPin=false;updateGo();
+    ptrs.delete(e.pointerId);last=null;pinchD=0;pinchC=null;return;}
+  /* 鼠标点一下就落钉;触摸在 pointerdown 时已经落过了 */
+  if(ptrs.size===1&&moved<6&&!S.done&&!isTouch(e)){
+    placePin(aimAt(e));}
+  ptrs.delete(e.pointerId); last=null; pinchD=0; pinchC=null;
   if(ptrs.size===1){const v=[...ptrs.values()][0];last=v;moved=99;}
+  if(!ptrs.size)pinAtDown=null;
 }
 wrap.addEventListener('pointerup',endPtr);
-wrap.addEventListener('pointercancel',e=>{hideLoupe();endPtr(e);});
+wrap.addEventListener('pointercancel',endPtr);
 let hoverPending=false;
 wrap.addEventListener('pointermove',e=>{
   if(e.pointerType!=='mouse'||S.done||hoverPending||dragPin)return;
@@ -979,21 +1003,6 @@ function movePin(m){
   if(!hotPend)hotPend=requestAnimationFrame(()=>{hotPend=0;setHot(provAt(S.pin));});
 }
 
-/* ---- 放大镜 ---- */
-const loupe=$('loupe'), loupeSvg=$('loupeSvg');
-const LOUPE_PX=132, LOUPE_ZOOM=3.2;
-function showLoupe(m){
-  const f=vbFit(), r=wrap.getBoundingClientRect();
-  const w=LOUPE_PX/(f.s*k*LOUPE_ZOOM);          /* 镜面覆盖多少 viewBox 单位 */
-  loupeSvg.setAttribute('viewBox',(m[0]-w/2).toFixed(2)+' '+(m[1]-w/2).toFixed(2)+
-    ' '+w.toFixed(2)+' '+w.toFixed(2));
-  const p=mapToScreen(m);
-  const x=Math.max(4,Math.min(r.width-LOUPE_PX-4,p[0]-r.left-LOUPE_PX/2));
-  const y=Math.max(4,Math.min(r.height-LOUPE_PX-4,p[1]-r.top-LOUPE_PX/2));
-  loupe.style.transform='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px)';
-  loupe.classList.add('on');
-}
-const hideLoupe=()=>loupe.classList.remove('on');
 
 /* ============ 文物图集:左右滑动 + 缩略图 + 放大查看 ============
    滑动交给原生 scroll-snap:手势、惯性、回弹都由浏览器负责,既省代码,
@@ -1169,7 +1178,7 @@ function round(){
   const it=S.items[S.i];
   S.pin=null; S.done=false; S.usedThis={};
   if(pinEl){pinEl.remove();pinEl=null;}
-  gMark.textContent=''; hotProv=null; hideLoupe();
+  gMark.textContent=''; hotProv=null;
   $('hR').textContent=S.i+1;
   $('pTag').textContent=it.cat;
   renderShots(it);
