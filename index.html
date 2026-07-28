@@ -293,6 +293,16 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .erow .de{display:block;font-size:11px;color:var(--muted);line-height:1.4}
   .erow .pt{color:var(--gold);font-variant-numeric:tabular-nums;font-family:var(--serif);font-size:15px}
+  /* 今天打了几组,结算里就有几页,左右滑着看。手势、惯性、回弹全交给原生
+     scroll-snap —— 和图集是同一套做法,见 .track。 */
+  .etrack{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .etrack::-webkit-scrollbar{display:none}
+  .epage{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always}
+  .edots{display:flex;justify-content:center;gap:7px;padding-top:12px}
+  .edots i{width:5px;height:5px;border-radius:50%;background:var(--line);
+    cursor:pointer;transition:background .2s}
+  .edots i.on{background:var(--gold)}
 
   .dist{margin-top:18px;border-top:1px solid var(--line-soft);padding-top:14px}
   .dist h3{font-size:11px;letter-spacing:3px;color:var(--muted);margin:0 0 2px;font-weight:400}
@@ -529,7 +539,8 @@
   <div class="end">
     <div class="endhd"><h2 id="endTitle">古懂</h2><span class="endday" id="finSub">—</span></div>
     <p class="fin" id="fin">0<small> / 400</small></p>
-    <div id="eRows"></div>
+    <div class="etrack" id="eTrack"></div>
+    <div class="edots" id="eDots"></div>
     <div class="dist" id="dist">
       <h3 id="distHd">今日全站分布</h3>
       <p class="rankline">你超过了 <b id="pct">—</b>% 的玩家</p>
@@ -1551,26 +1562,51 @@ $('nextBtn').onclick=()=>{ if(S.i<S.items.length-1){S.i++;round();} else showEnd
 
 /* ============ 结算 + 分布 ============ */
 const DAY_MAX=SETS_PER_DAY*ITEMS_PER_SET*MAX_ITEM;
-function showEnd(){
-  const max=S.items.length*MAX_ITEM;
-  persistSet();
-  const last=S.set>=SETS_PER_DAY-1;
-  $('endTitle').textContent='古懂';
-  $('fin').innerHTML=fn(S.total)+'<small> / '+fn(max)+'</small>';
-  $('setBtn').style.display=last?'none':'';   /* 每轮打完都能存卡片,不必等到最后一轮 */
-  $('nextDay').style.display=last?'':'none';
-  $('finSub').textContent=S.label;
-  const rows=$('eRows'); rows.innerHTML='';
-  S.res.forEach(r=>{
-    const div=document.createElement('div'); div.className='erow';
-    div.innerHTML='<span class="th"><img src="'+(shotsOf(r.it.id)[0]||'')+'" alt=""></span>'+
-      '<span class="m"><span class="nm">'+r.it.name+'</span>'+
-      /* 结算页给答案,不复述误差 —— 一天就一局,记住"它是哪儿的、什么年代"
-         比记住"我差了多少公里"有用得多 */
-      '<span class="de">'+shortSite(r.it.site)+' · '+r.it.era+'</span></span>'+
-      '<span class="pt">'+fn(r.item)+'</span>';
-    rows.appendChild(div);
+/* 结算面板眼下翻到了第几页。必须和 S.set 分开记 —— S.set 是「今天打到第几组」,
+   「再来一组」按的是它。共用一个变量的话,翻回第一组再点「再来一组」,
+   就会把已经打完的第二组重开一遍。 */
+let endView=0;
+const viewSet=()=>S.sets[endView]||{total:S.total,res:S.res};
+
+function erowHTML(r){
+  return '<div class="erow"><span class="th"><img src="'+(shotsOf(r.it.id)[0]||'')+'" alt=""></span>'+
+    '<span class="m"><span class="nm">'+r.it.name+'</span>'+
+    /* 结算页给答案,不复述误差 —— 一天就一局,记住"它是哪儿的、什么年代"
+       比记住"我差了多少公里"有用得多 */
+    '<span class="de">'+shortSite(r.it.site)+' · '+r.it.era+'</span></span>'+
+    '<span class="pt">'+fn(r.item)+'</span></div>';
+}
+/* 今天打完的每一组各铺一页。不区分「刚打完的」和「存档里的」—— 刷新之后
+   S.sets 是 restoreDaily 从存档灌回来的,有几组就该有几页。 */
+function buildPages(){
+  const t=$('eTrack'), d=$('eDots'), done=S.sets.filter(Boolean);
+  t.innerHTML=done.map(s=>'<div class="epage">'+s.res.map(erowHTML).join('')+'</div>').join('');
+  d.innerHTML=done.map(()=>'<i></i>').join('');
+  d.style.display=done.length>1?'':'none';   /* 只有一组时不画那个孤零零的点 */
+  [...d.children].forEach((dot,n)=>{
+    dot.onclick=()=>t.scrollTo({left:t.clientWidth*n,behavior:'smooth'});
   });
+}
+/* 翻页之后,面板上所有「跟着这一组走」的东西都要重算:得分、两个按钮、
+   分布里那条「你超过了多少人」,以及卡片 —— 卡片画的必须是眼下这一页。 */
+function syncEnd(){
+  const v=viewSet(), max=v.res.length*MAX_ITEM;
+  $('fin').innerHTML=fn(v.total)+'<small> / '+fn(max)+'</small>';
+  [...$('eDots').children].forEach((d,n)=>d.classList.toggle('on',n===endView));
+  /* 翻回旧的一组时两个按钮都收起来:那页是已经过去的战绩,「再来一组」摆在
+     那儿会被读成「重打这一组」,而「明天见」在第一组下面根本就是假话。 */
+  const cur=endView===S.set, last=S.set>=SETS_PER_DAY-1;
+  $('setBtn').style.display=(cur&&!last)?'':'none';   /* 每组打完都能存卡片,不必等到最后一组 */
+  $('nextDay').style.display=(cur&&last)?'':'none';
+  renderDist(S.distRaw||seedDist(S.label),max);
+  prepCard();
+}
+function showEnd(){
+  persistSet();
+  endView=S.set;                              /* 一打完先落在刚结束的这一组上 */
+  $('endTitle').textContent='古懂';
+  $('finSub').textContent=S.label;
+  buildPages();
   /* 同一组只上报一次。分布就是从这些事件算出来的 —— 刷新一下、回看一次战绩
      就多记一笔的话,一个人能把当天的曲线拽歪。想开隐身模式重来的,就让他重来:
      再拦下去要付的代价(账号、设备指纹)比一张直方图重得多。 */
@@ -1579,12 +1615,32 @@ function showEnd(){
      postScore(S.label,S.total);
      sv.sentDay=S.label; sv.sent=sent.concat([S.set]); putSave(sv);
    }}
-  renderDist(seedDist(S.label),max);          /* 先用兜底曲线撑住版面 */
+  S.distRaw=null;                             /* 先用兜底曲线撑住版面 */
   $('over').classList.add('show');
-  prepCard();
+  /* 定位到刚打完的这一组。浮层这一刻才从 display:none 出来,布局还没落定,
+     同一帧里 scroll-snap 会把 scrollLeft 拉回 0 —— 于是内容停在第一页、
+     状态却指着最后一页。所以立刻设一次,再在下一个任务里补一次。
+     补那次不用 requestAnimationFrame:页面切到后台时它根本不触发,
+     而"在微信里切走再切回来"正是这种情形。 */
+  const place=()=>{const t=$('eTrack'); if(t.clientWidth)t.scrollLeft=t.clientWidth*endView;};
+  place(); setTimeout(place,0);
+  syncEnd();
   /* 真实数据回来了再重画一次,顺带把卡片重新生成 —— 卡片上画的是同一块 */
-  fetchDist(S.label).then(d=>{ if(d&&$('over').classList.contains('show')){renderDist(d,max);prepCard();} });
+  fetchDist(S.label).then(d=>{
+    if(d&&$('over').classList.contains('show')){S.distRaw=d;syncEnd();}
+  });
 }
+/* 滑动翻页。scroll 触发很密,合并到下一帧再同步 —— 和图集那边同样的处理 */
+let eTick=false;
+$('eTrack').addEventListener('scroll',()=>{
+  if(eTick)return; eTick=true;
+  requestAnimationFrame(()=>{
+    eTick=false;
+    const t=$('eTrack'), n=$('eDots').children.length;
+    const i=Math.max(0,Math.min(n-1,Math.round(t.scrollLeft/Math.max(1,t.clientWidth))));
+    if(i!==endView){endView=i;syncEnd();}
+  });
+});
 function renderDist(d,max){
   const box=$('dist');
   if(!d||!d.buckets){                        /* 没有可信的分布就整块不出现 */
@@ -1592,7 +1648,7 @@ function renderDist(d,max){
   }
   box.style.display='';
   const hist=d.buckets, BINS=hist.length, N=Math.max(1,d.total);
-  const mine=Math.min(BINS-1,Math.floor(S.total/max*BINS));
+  const mine=Math.min(BINS-1,Math.floor(viewSet().total/max*BINS));
   let below=0;
   for(let i=0;i<mine;i++)below+=hist[i];
   below+=hist[mine]/2;                       /* 自己所在那一档折半计,免得同分互相碾压 */
@@ -1663,9 +1719,10 @@ const rule=(g,y,w,c)=>{g.strokeStyle=c;g.lineWidth=Math.max(1,U(1));
   g.beginPath();g.moveTo(C_PAD,y);g.lineTo(w-C_PAD,y);g.stroke();};
 
 async function buildCard(){
-  const res=S.res, W=CARD_W, CW=W-C_PAD*2;
-  /* 「明天见」只在最后一轮出现 —— 前两轮还能接着玩,这句话在那儿是假的 */
-  const last=S.set>=SETS_PER_DAY-1;
+  const v=viewSet(), res=v.res, W=CARD_W, CW=W-C_PAD*2;
+  /* 「明天见」只在最后一轮出现 —— 前两轮还能接着玩,这句话在那儿是假的。
+     按 endView 判断,不按 S.set:存的是眼下翻到的那一组的卡片。 */
+  const last=endView>=SETS_PER_DAY-1;
   const d=S.dist;                             /* 没有真分布时,卡片上也不留那块空位 */
   const H=Math.round(C_PAD_T+U(25)+U(69)+res.length*ROW_H
                      +(d?U(33+18+39)+BARS_H+U(17):0)+(last?U(21):0)+C_PAD_B);
@@ -1683,8 +1740,8 @@ async function buildCard(){
 
   y+=U(6)+U(46);
   g.textAlign='left'; g.fillStyle=CARD_GOLD; g.font=U(46).toFixed(0)+'px '+CARD_SERIF;
-  g.fillText(fn(S.total),C_PAD,y);
-  const sw=g.measureText(fn(S.total)).width;
+  g.fillText(fn(v.total),C_PAD,y);
+  const sw=g.measureText(fn(v.total)).width;
   g.fillStyle=CARD_FAINT; g.font=U(15).toFixed(0)+'px '+CARD_SERIF;
   g.fillText(' / '+fn(res.length*MAX_ITEM),C_PAD+sw,y);
   y+=U(18);
@@ -1761,14 +1818,20 @@ async function buildCard(){
    1. navigator.share 带文件 —— 系统分享面板里就有「存储到照片」,iOS/Android 的真浏览器都支持
    2. a[download] —— 桌面直接下载;iOS 存进「文件」不是相册,所以排在 share 后面
    3. 长按另存 —— 微信内置浏览器把前两条都封了,只剩这条 */
-let cardBlob=null, cardURL='', cardJob=null;
+let cardBlob=null, cardURL='', cardJob=null, cardSeq=0;
 const canvasBlob=c=>new Promise(r=>c.toBlob(r,'image/png'));
 function prepCard(){                     /* 结算一出来就先画好,别等到点下去才开工 ——
                                             share() 必须在用户手势里同步调用,await 一次就废了 */
   cardBlob=null; cardURL='';
+  /* 翻一次页就重画一张,而画一张要等那一组的四张图加载完。翻得快的时候
+     这些绘制会叠在一起,先发起的未必先画完 —— 认序号,只让最后一次写结果,
+     否则存下来的会是刚刚划过去的那一组。 */
+  const seq=++cardSeq;
   cardJob=buildCard().then(async c=>{
-    cardURL=c.toDataURL('image/png');
-    cardBlob=await canvasBlob(c);
+    if(seq!==cardSeq)return null;
+    const url=c.toDataURL('image/png'), blob=await canvasBlob(c);
+    if(seq!==cardSeq)return null;
+    cardURL=url; cardBlob=blob;
     return cardBlob;
   }).catch(()=>null);
   return cardJob;
