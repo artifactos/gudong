@@ -725,6 +725,14 @@ function toVB(cx,cy){
   return [VX+(cx-f.r.left-f.ox)/f.s, VY+(cy-f.r.top-f.oy)/f.s];
 }
 const toMap=(vx,vy)=>[(vx-tx)/k,(vy-ty)/k];
+/* 滚轮一格的量级差得离谱:触控板一次给几像素,鼠标滚轮一格给一百。
+   同一个系数下,调到触控板顺手鼠标就飞了。所以先把行模式换算成像素,
+   再把单次幅度截到 40 —— 触控板的小步长原样保留,鼠标的大步长封顶。 */
+const WHEEL_BASE=1.0045, WHEEL_CAP=40;
+function wheelDelta(e){
+  const d=e.deltaY*(e.deltaMode===1?16:(e.deltaMode===2?400:1));
+  return Math.max(-WHEEL_CAP,Math.min(WHEEL_CAP,d));
+}
 function zoomAt(vx,vy,nk){
   nk=Math.min(K_MAX,Math.max(K_MIN,nk));
   const m=toMap(vx,vy);
@@ -751,7 +759,9 @@ const T_CITY=2.3, T_ALL=4.6;
 const DOT_PX=2.4, ISL_PX=2.4;
 function labelPx(){
   const w=svg.getBoundingClientRect().width;
-  const s=Math.max(0.72,Math.min(1,w/560));   /* 560px 以上用满,越窄收得越多 */
+  /* 手机上越窄收得越多;桌面上地图有一千多像素宽,按手机的字号排出来的地名
+     小得要凑近看 —— 所以上限放到 1.22,让宽屏也能跟着长一点。 */
+  const s=Math.max(0.72,Math.min(1.22,w/560));
   return {prov:15*s, city:13*s};
 }
 const unitsPerPx=()=>VW/Math.max(1,svg.getBoundingClientRect().width);
@@ -937,8 +947,11 @@ wrap.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);last=null;pin
 /* 普通滚轮不拦截 —— 否则光标停在地图上就没法往下翻页,还会一路把缩放顶到上限。
    按 Ctrl / ⌘ 再滚才缩放,这是地图组件的通行约定。 */
 let wheelHintAt=0;
+/* 要按 Ctrl 才能缩放,是怕滚轮把页面滚动抢走。桌面端地图是固定满屏的、
+   页面本来就不滚,这条限制在那儿只是让人多按一只手 —— 所以只在窄屏保留。 */
+const wheelNeedsMod=()=>!matchMedia('(min-width:1080px)').matches;
 wrap.addEventListener('wheel',e=>{
-  if(!(e.ctrlKey||e.metaKey)){
+  if(wheelNeedsMod()&&!(e.ctrlKey||e.metaKey)){
     if(!S.done&&e.timeStamp-wheelHintAt>1200){
       wheelHintAt=e.timeStamp;
       $('mapHint').textContent='按住 Ctrl / ⌘ 滚动可缩放';
@@ -948,10 +961,10 @@ wrap.addEventListener('wheel',e=>{
   }
   e.preventDefault();
   const v=toVB(e.clientX,e.clientY);
-  zoomAt(v[0],v[1],k*Math.pow(1.0016,-e.deltaY));
+  zoomAt(v[0],v[1],k*Math.pow(WHEEL_BASE,-wheelDelta(e)));
 },{passive:false});
-$('zIn').onclick=()=>zoomAt(VX+VW/2,VY+VH/2,k*1.6);
-$('zOut').onclick=()=>zoomAt(VX+VW/2,VY+VH/2,k/1.6);
+$('zIn').onclick=()=>zoomAt(VX+VW/2,VY+VH/2,k*1.9);
+$('zOut').onclick=()=>zoomAt(VX+VW/2,VY+VH/2,k/1.9);
 $('zRst').onclick=()=>{k=K_START;tx=0;ty=0;apply();};
 
 /* ============ 存档:每日一局 + 连胜 ============
@@ -1116,7 +1129,8 @@ function lbEnd(e){
 }
 lb.addEventListener('pointerup',lbEnd);
 lb.addEventListener('pointercancel',e=>{lbPtrs.delete(e.pointerId);lbLast=null;lbPinch=0;});
-lb.addEventListener('wheel',e=>{e.preventDefault();lbZoomAt(e.clientX,e.clientY,lk*Math.pow(1.0016,-e.deltaY));},{passive:false});
+lb.addEventListener('wheel',e=>{e.preventDefault();
+  lbZoomAt(e.clientX,e.clientY,lk*Math.pow(WHEEL_BASE,-wheelDelta(e)));},{passive:false});
 
 /* 今天的三套题:发牌式抽取 —— 洗一副牌发完再洗下一副。
    题库不足 12 件时重复无可避免,但只会跨套出现;同一套里绝不撞见两次同一件。 */
