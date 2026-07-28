@@ -51,6 +51,10 @@
   header{display:flex;align-items:center;gap:10px;padding:12px 0 10px;position:sticky;top:0;z-index:8;
     background:linear-gradient(180deg,var(--bg) 74%,rgba(247,244,236,0));}
   .brand{font-family:var(--serif);font-size:17px;letter-spacing:6px;font-weight:700}
+  /* 图形标:竹为竖心旁,熊为「董」,合起来是「懂」。用 mask 挖负空间,
+     所以熊眼、腹带、叶子周围的白边都是透空的,底色透过来,换背景不用改图。 */
+  .mark{display:flex;align-items:center;flex:none;color:var(--ink)}
+  .mark svg{height:23px;width:auto;display:block}
   .hud{margin-left:auto;text-align:right;font-variant-numeric:tabular-nums;line-height:1.25}
   .hud .r{font-size:10.5px;color:var(--muted);letter-spacing:1.5px}
   .hud .s{font-family:var(--serif);font-size:19px;color:var(--gold)}
@@ -411,6 +415,7 @@
 
 <div class="app" id="app">
   <header>
+    <span class="mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="80 122 352 282" aria-label="古懂"><mask id="gd" maskUnits="userSpaceOnUse" x="80" y="122" width="352" height="282"><g transform="translate(60,0)"><g fill="#fff"><path d="M79.0 128.0 L113.0 128.0 Q118.0 128.0 118.0 133.0 C114.0 153.0 114.0 186.2 118.0 206.2 Q118.0 211.2 113.0 211.2 L79.0 211.2 Q74.0 211.2 74.0 206.2 C78.0 186.2 78.0 153.0 74.0 133.0 Q74.0 128.0 79.0 128.0 Z"/><path d="M79.0 221.2 L113.0 221.2 Q118.0 221.2 118.0 226.2 C114.0 246.2 114.0 279.5 118.0 299.4 Q118.0 304.4 113.0 304.4 L79.0 304.4 Q74.0 304.4 74.0 299.4 C78.0 279.5 78.0 246.2 74.0 226.2 Q74.0 221.2 79.0 221.2 Z"/><path d="M79.0 314.4 L113.0 314.4 Q118.0 314.4 118.0 319.4 C114.0 339.4 114.0 372.7 118.0 392.6 Q118.0 397.6 113.0 397.6 L79.0 397.6 Q74.0 397.6 74.0 392.6 C78.0 372.7 78.0 339.4 74.0 319.4 Q74.0 314.4 79.0 314.4 Z"/></g><g transform="translate(57.0,42.32) scale(0.75,0.84)"><g fill="#fff"><circle cx="176" cy="140" r="38"/><circle cx="336" cy="140" r="38"/><path d="M256 112 C318 112 356 152 362 206 C396 244 412 306 412 362 C412 398 396 414 366 414 L146 414 C116 414 100 398 100 362 C100 306 116 244 150 206 C156 152 194 112 256 112 Z"/></g><g fill="#000"><path d="M194 186 L238 176 L234 200 L192 206 Z"/><path d="M318 186 L274 176 L278 200 L320 206 Z"/><rect x="112" y="278" width="128" height="26"/><rect x="272" y="278" width="128" height="26"/><rect x="104" y="334" width="136" height="26"/><rect x="272" y="334" width="136" height="26"/></g><path d="M256 112 C318 112 356 152 362 206 C396 244 412 306 412 362 C412 398 396 414 366 414 L146 414 C116 414 100 398 100 362 C100 306 116 244 150 206 C156 152 194 112 256 112 Z" fill="none" stroke="#fff" stroke-width="18"/></g><path d="M112 180 C152 187 171 202 184 226 C157 229 132 218 108 207 Z" fill="none" stroke="#000" stroke-width="12" stroke-linejoin="round"/><g fill="#fff"><path d="M112 180 C152 187 171 202 184 226 C157 229 132 218 108 207 Z"/><path d="M82 216 C56 226 44 244 26 272 C58 274 78 260 92 240 Z"/></g></g></mask><rect x="80" y="122" width="352" height="282" fill="currentColor" mask="url(#gd)"/></svg></span>
     <div class="brand">古懂</div>
     <div class="hud"><div class="r">第 <span id="hR">1</span>/<span id="hT">4</span> 件</div>
       <div class="s" id="hS">0</div></div>
@@ -1042,20 +1047,23 @@ async function fetchDist(day){
     const r=await fetch(API+'/d/'+day,{cache:'no-store'});
     if(!r.ok)return null;
     const d=await r.json();
-    if(d.rounds>=DIST_MIN)return {buckets:d.buckets,total:d.rounds,src:'today'};
-    if(d.baselineRounds>=DIST_MIN)
-      return {buckets:d.baseline,total:d.baselineRounds,src:'baseline',todayN:d.rounds};
-    return {...seedDist(day),todayN:d.rounds};
+    /* 拿刚打完那一组的曲线。三组混在一起比是不对的:第三组的人会跟第一组的
+       成绩比,而那是另一批题。 */
+    const mine=(d.sets||[])[S.set], base=(d.baseline||[])[S.set];
+    if(mine&&mine.rounds>=DIST_MIN)return {buckets:mine.buckets,total:mine.rounds,src:'today'};
+    if(base&&base.rounds>=DIST_MIN)
+      return {buckets:base.buckets,total:base.rounds,src:'baseline',todayN:mine?mine.rounds:0};
+    return {...seedDist(day),todayN:mine?mine.rounds:0};
   }catch(e){return null;}
 }
 /* 成绩只有这一条路。Cloudflare Web Analytics 只统计 pageview 和 Core Web Vitals,
    没有自定义事件,存不下分数 —— 所以分布必须靠自己的 Worker。 */
-function postScore(day,score,first){
+function postScore(day,grp,score){
   if(!API)return;
   try{
-    /* f 只在当天第一次提交时给。服务端数得出局数,数不出人数 —— 它看不到
-       是谁在交,这正是不存标识的代价,所以只能由这边说一声。 */
-    const body=JSON.stringify(first?{d:day,v:score,f:1}:{d:day,v:score});
+    /* 带上第几组。服务端按组分开记,玩家看到的分位数才是和同一组比出来的;
+       人数也从第一组的局数推,不用再单独报一个「今天第一次」的标记。 */
+    const body=JSON.stringify({d:day,g:grp,v:score});
     /* sendBeacon 在页面被切走时也送得出去,而且不占主线程 */
     if(navigator.sendBeacon)navigator.sendBeacon(API+'/s',new Blob([body],{type:'application/json'}));
     else fetch(API+'/s',{method:'POST',headers:{'content-type':'application/json'},body:body,keepalive:true});
@@ -1614,7 +1622,7 @@ function showEnd(){
      再拦下去要付的代价(账号、设备指纹)比一张直方图重得多。 */
   {const sv=loadSave(), sent=(sv.sentDay===S.label&&Array.isArray(sv.sent))?sv.sent:[];
    if(sent.indexOf(S.set)<0){
-     postScore(S.label,S.total,sent.length===0);   /* 今天第一次交 */
+     postScore(S.label,S.set,S.total);
      sv.sentDay=S.label; sv.sent=sent.concat([S.set]); putSave(sv);
    }}
   S.distRaw=null;                             /* 先用兜底曲线撑住版面 */
