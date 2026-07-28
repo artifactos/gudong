@@ -1225,6 +1225,10 @@ function startSet(n){
   S.set=n; S.items=S.day[n]; S.i=0; S.total=0; S.res=[];   /* 提示不在这里重置 —— 它按天算 */
   $('hT').textContent=S.items.length; $('hS').textContent='0';
   $('steps').innerHTML=S.items.map(()=>'<i></i>').join('');
+  /* 开局就落一次空进度。不落的话,从「再来一组」到答完第一件这段时间存档里
+     没有 cur,刷新会被当成「今天打完了 n 组」,退回上一组的战绩卡片。
+     已经开了新的一组,刷新就该还在新的一组里。 */
+  saveProgress();
   round();
 }
 /* 把今天的题面和已打完的组灌回 S,返回打完了几组。
