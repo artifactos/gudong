@@ -137,8 +137,9 @@
     background:#C8DCEA;border:1px solid var(--line);border-radius:4px;padding:2px}
   .insetlbl{fill:var(--muted);font-family:var(--sans);text-anchor:middle;letter-spacing:1px}
   /* 地名走暖灰褐,和陆地同色系 —— 纯黑压在浅米底上太硬,像正文不像图面 */
-  .lbl{font-family:var(--sans);fill:#6E6455;paint-order:stroke;stroke:rgba(240,234,220,.92);
-    stroke-width:2.6px;stroke-linejoin:round;pointer-events:none}
+  /* 地名不描边:那圈米色是想垫在字底下当衬,但落到海面上就成了一块跟着字走的
+     色斑。底图本来就淡,靠字色和底色的明度差已经读得出来。 */
+  .lbl{font-family:var(--sans);fill:#6E6455;pointer-events:none}
   .lbl.cap{fill:#4E4636}
   .lbl.sea{fill:#37678A}
   .cdot{fill:#7C7869;pointer-events:none}
@@ -587,7 +588,7 @@ const fy=y=>y<0?('公元前'+(-y)+'年'):('公元'+y+'年');
 const fn=n=>n.toLocaleString('zh-Hans-CN');
 /* site 形如「四川广汉 · 三星堆二号祭祀坑 · 1986年出土」,结算页只取头一段地名 */
 const shortSite=s=>String(s||'').split(' · ')[0];
-/* 年代提示:给一个 1000 年的窗口(玩家自己的窗口是 500 年,所以仍需判断) */
+/* 年代提示:给一个 500 年的窗口(玩家自己的窗口是 250 年,所以仍需判断) */
 function timeWindow(y){
   const W=Math.min(2*WIN,Y_MAX-Y_MIN), q=WIN;   /* 提示窗口始终是作答窗口的两倍宽 */
   const m=((y%q)+q)%q;                          /* 对齐到网格,免得真值恰好落在正中被看穿 */
@@ -931,7 +932,14 @@ function endPtr(e){
   if(!ptrs.size)pinAtDown=null;
 }
 wrap.addEventListener('pointerup',endPtr);
-wrap.addEventListener('pointercancel',endPtr);
+/* 手势被系统打断(来电、切后台、手掌误触)只收尾,绝不落新钉 ——
+   走 endPtr 的话鼠标轻点被打断会被当成落钉 */
+wrap.addEventListener('pointercancel',e=>{
+  if(dragPin){dragPin=false;updateGo();}
+  ptrs.delete(e.pointerId); last=null; pinchD=0; pinchC=null;
+  if(ptrs.size===1){last=[...ptrs.values()][0];moved=99;}
+  if(!ptrs.size)pinAtDown=null;
+});
 let hoverPending=false;
 wrap.addEventListener('pointermove',e=>{
   if(e.pointerType!=='mouse'||S.done||hoverPending||dragPin)return;
@@ -943,7 +951,6 @@ wrap.addEventListener('pointermove',e=>{
   });
 });
 wrap.addEventListener('pointerleave',()=>{if(!S.done&&!S.pin)setHot(null);});
-wrap.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);last=null;pinchD=0;dragPin=false;});
 /* 普通滚轮不拦截 —— 否则光标停在地图上就没法往下翻页,还会一路把缩放顶到上限。
    按 Ctrl / ⌘ 再滚才缩放,这是地图组件的通行约定。 */
 let wheelHintAt=0;
@@ -1206,7 +1213,7 @@ function round(){
   const it=S.items[S.i];
   S.pin=null; S.done=false; S.usedThis={};
   if(pinEl){pinEl.remove();pinEl=null;}
-  gMark.textContent=''; hotProv=null;
+  gMark.textContent=''; setHot(null);
   $('hR').textContent=S.i+1;
   $('pTag').textContent=it.cat;
   renderShots(it);
@@ -1235,7 +1242,7 @@ function round(){
   k=K_START;tx=0;ty=0;apply();
   window.scrollTo({top:0,behavior:'smooth'});
 }
-/* 时间轴:上下五千年(前3000 — 公元2000),窗口固定 500 年,只能左右拖。
+/* 时间轴:上下五千年(前3000 — 公元2000),窗口固定 250 年,只能左右拖。
 
    难度怎么拉平:靶子不用文物的完整断代区间,而是取以中心年代为中心、最宽 100 年的
    "核心区间"。两个好处 ——
@@ -1322,6 +1329,9 @@ $('hTime').onclick=()=>useHint('time');
 $('goBtn').onclick=()=>{
   if(!S.pin||S.done)return;
   S.done=true;
+  /* 摘掉 hover/落钉的省份高亮 —— .prov.hot 的样式写在 .truth/.wrong 之后,
+     不摘的话揭晓配色会被它盖掉(手机上落钉的省必然带着 .hot) */
+  setHot(null);
   const it=S.items[S.i];
   /* 图钉的地图坐标反查经纬:见下方 invApprox,对 albers 做牛顿迭代反解 */
   const gLL=invApprox(S.pin);
@@ -1646,7 +1656,8 @@ function prepCard(){                     /* 结算一出来就先画好,别等�
 const cardFile=b=>new File([b],'古懂-'+S.label+'.png',{type:'image/png'});
 function saveCard(blob){
   if(blob&&navigator.canShare&&navigator.canShare({files:[cardFile(blob)]})){
-    navigator.share({files:[cardFile(blob)]}).catch(()=>{});
+    /* 手势过期等原因被拒时退回长按预览;用户自己关掉分享面板(AbortError)不弹 */
+    navigator.share({files:[cardFile(blob)]}).catch(e=>{if(!e||e.name!=='AbortError')showCardPreview();});
     return true;
   }
   if(cardURL&&'download' in document.createElement('a')&&!matchMedia('(pointer:coarse)').matches){
